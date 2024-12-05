@@ -1,4 +1,4 @@
-const userSchema = require("../models/user.model");
+const captainSchema = require("../models/captain.model");
 const BlacklistToken = require("../models/blacklisttoken.model");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -6,22 +6,22 @@ const jwt = require("jsonwebtoken");
 module.exports.register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    const user = await userSchema.findOne({ email: email });
-    if (user) {
-      return res.status(400).json({ message: "user already excist" });
+    const captain = await captainSchema.findOne({ email: email });
+    if (captain) {
+      return res.status(400).json({ message: "captain already excist" });
     }
     const salt = await bcrypt.genSalt(10);
     const hashPassword = await bcrypt.hash(password, salt);
-    const newUser = new userSchema({
+    const newcaptain = new captainSchema({
       name,
       email,
       password: hashPassword,
     });
-    await newUser.save();
+    await newcaptain.save();
 
-    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET);
+    const token = jwt.sign({ id: newcaptain._id }, process.env.JWT_SECRET);
     res.cookie("token", token, { httpOnly: true, secure: true });
-    res.status(201).send({ message: "user created successfully" });
+    res.status(201).send({ message: "captain created successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -30,19 +30,21 @@ module.exports.register = async (req, res) => {
 module.exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await userSchema.findOne({ email: email }).select("+password");
+    const captain = await captainSchema
+      .findOne({ email: email })
+      .select("+password");
 
-    if (!user) {
+    if (!captain) {
       return res.status(400).json({ message: "invalid credentials" });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, captain.password);
     if (!isMatch) {
       return res.status(400).json({ message: "invalid credentials" });
     }
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+    const token = jwt.sign({ id: captain._id }, process.env.JWT_SECRET);
     res.cookie("token", token, { httpOnly: true, secure: true });
-    res.send({ message: "User logged in successfully" });
+    res.send({ message: "captain logged in successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -52,11 +54,11 @@ module.exports.logout = async (req, res) => {
   try {
     const token = req.cookies.token || req.headers.authorization.split(" ")[1];
     if (!token) {
-      return res.status(400).json({ message: "user already logged out" });
+      return res.status(400).json({ message: "captain already logged out" });
     }
     await BlacklistToken.create({ token });
     res.clearCookie("token");
-    res.send({ message: "user logged out successfully" });
+    res.send({ message: "captain logged out successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -64,7 +66,18 @@ module.exports.logout = async (req, res) => {
 
 module.exports.profile = async (req, res) => {
   try {
-    res.send(req.user);
+    res.send(req.captain);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+module.exports.toggleAvailability = async (req, res) => {
+  try {
+    const captain = await captainSchema.findById(req.captain._id);
+    captain.isAvailable = !captain.isAvailable;
+    await captain.save();
+    res.send(captain);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
