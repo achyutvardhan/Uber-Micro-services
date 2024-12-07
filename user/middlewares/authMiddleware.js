@@ -13,6 +13,7 @@ module.exports.authUser = async (req, res, next) => {
     }
     const decrypt = jwt.verify(token, process.env.JWT_SECRET);
     const user = await userSchema.findById(decrypt.id);
+    console.log(token);
     if (!user) {
       return res.status(401).json({ message: "user not authenticated" });
     }

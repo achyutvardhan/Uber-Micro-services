@@ -12,6 +12,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-app.use("/", require("./routers/captain.routes")); // Use user router
+app.use("/", require("./routers/ride.routes")); // Use ride router
 
 module.exports = app; // Export app
